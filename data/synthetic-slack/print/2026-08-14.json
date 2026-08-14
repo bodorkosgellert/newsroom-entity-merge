@@ -1,0 +1,20 @@
+[
+  {
+    "type": "message",
+    "user": "U_BOT",
+    "text": "CMS: created slug flaco-owl-nyc-2023 · ticket TICKET-FLACO-01 · owner @maya.desk",
+    "ts": "1723637300.000100"
+  },
+  {
+    "type": "message",
+    "user": "U_PRINT",
+    "text": "Print desk will run \"Flaco the window owl\" if video confirms same bird across angles.",
+    "ts": "1723637400.000200"
+  },
+  {
+    "type": "message",
+    "user": "U_BOT",
+    "text": "CMS: separate ticket ART-MONA-220 for Mona Lisa campaign assets — do not merge with TICKET-FLACO-01.",
+    "ts": "1723637500.000300"
+  }
+]

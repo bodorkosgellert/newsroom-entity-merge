@@ -1,0 +1,35 @@
+[
+  {
+    "id": "C_POL",
+    "name": "politics",
+    "created": 1723600000,
+    "creator": "U_DESK",
+    "is_archived": false,
+    "is_general": false,
+    "members": ["U_DESK", "U_POL", "U_VID", "U_PRINT"],
+    "topic": { "value": "Politics + breaking civic", "creator": "U_DESK", "last_set": 1723600000 },
+    "purpose": { "value": "Wire + tips", "creator": "U_DESK", "last_set": 1723600000 }
+  },
+  {
+    "id": "C_VID",
+    "name": "video",
+    "created": 1723600001,
+    "creator": "U_DESK",
+    "is_archived": false,
+    "is_general": false,
+    "members": ["U_DESK", "U_VID", "U_POL"],
+    "topic": { "value": "Field clips + archive pulls", "creator": "U_DESK", "last_set": 1723600001 },
+    "purpose": { "value": "Video desk", "creator": "U_DESK", "last_set": 1723600001 }
+  },
+  {
+    "id": "C_PRINT",
+    "name": "print",
+    "created": 1723600002,
+    "creator": "U_DESK",
+    "is_archived": false,
+    "is_general": false,
+    "members": ["U_DESK", "U_PRINT", "U_BOT"],
+    "topic": { "value": "CMS + print desk", "creator": "U_DESK", "last_set": 1723600002 },
+    "purpose": { "value": "Slugs and tickets", "creator": "U_DESK", "last_set": 1723600002 }
+  }
+]

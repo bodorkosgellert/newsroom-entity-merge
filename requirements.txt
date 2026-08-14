@@ -1,0 +1,7 @@
+python-dotenv>=1.0.0
+twelvelabs>=1.0.0
+slack-bolt>=1.20.0
+requests>=2.31.0
+# Optional:
+# cognee
+# cognee-community-vector-adapter-qdrant

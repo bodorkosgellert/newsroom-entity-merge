@@ -1,0 +1,33 @@
+[
+  {
+    "id": "U_DESK",
+    "name": "maya.desk",
+    "real_name": "Maya Desk",
+    "profile": { "title": "Assignment desk" }
+  },
+  {
+    "id": "U_POL",
+    "name": "jonas.politics",
+    "real_name": "Jonas Weber",
+    "profile": { "title": "Politics reporter" }
+  },
+  {
+    "id": "U_VID",
+    "name": "lea.video",
+    "real_name": "Lea Krueger",
+    "profile": { "title": "Video editor" }
+  },
+  {
+    "id": "U_PRINT",
+    "name": "sam.print",
+    "real_name": "Sam Okonkwo",
+    "profile": { "title": "Print / CMS" }
+  },
+  {
+    "id": "U_BOT",
+    "name": "cmsbot",
+    "real_name": "CMS Bot",
+    "is_bot": true,
+    "profile": { "title": "Nonhuman actor - CMS webhook" }
+  }
+]

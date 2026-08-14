@@ -1,0 +1,19 @@
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Generated / local runtime
+out/
+data/clips/flaco/
+data/clips/distractors/*.mp4
+**/slack_inbox/
+
+# Local video downloads (YouTube news clips — do not publish)
+*.mp4
+*.mov
+*.mkv
+*.webm

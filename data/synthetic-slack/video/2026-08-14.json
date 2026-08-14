@@ -1,0 +1,27 @@
+[
+  {
+    "type": "message",
+    "user": "U_VID",
+    "text": "New angle dropped: apartment windowsill, street-level looking up, and park birder phone. Files in /clips/flaco/",
+    "ts": "1723637000.000100"
+  },
+  {
+    "type": "message",
+    "user": "U_VID",
+    "text": "Also someone uploaded a Mona Lisa effect clip into the intake folder — that is NOT Flaco. Please don't attach it to the owl ticket.",
+    "ts": "1723637100.000200",
+    "files": [
+      {
+        "id": "F_MONA",
+        "name": "mona-lisa-effect.mp4",
+        "url_private": "local://distractors/mona-lisa-effect.mp4"
+      }
+    ]
+  },
+  {
+    "type": "message",
+    "user": "U_VID",
+    "text": "Query for archive: \"eagle owl on apartment windowsill orange eyes\" — should match Flaco angles only.",
+    "ts": "1723637200.000300"
+  }
+]
