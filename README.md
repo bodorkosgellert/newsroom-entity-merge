@@ -2,7 +2,9 @@
 
 Hack-night demo: **multi-angle video + simulated Slack → one desk ticket**, with a hard reject for the wrong asset.
 
-Built for the Cognee × Qdrant Slack memory hack night. Uses **Twelve Labs** for video search; Slack bot optional (Socket Mode).
+Built at [Give Your Slack a Memory (Cognee × Qdrant, Berlin)](https://luma.com/cognee-m078) — multi-angle video → existing desk ticket, with distractor reject.
+
+Uses **Twelve Labs** for video search; Slack bot optional (Socket Mode).
 
 ## Demo beat
 

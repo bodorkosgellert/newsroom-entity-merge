@@ -69,10 +69,7 @@ def on_file_shared(event, client, logger):
 
     client.chat_postMessage(
         channel=channel,
-        text=(
-            f"Got *{f.get('name')}*. Indexing with Twelve Labs and routing to "
-            f"`TICKET-FLACO-01` or `ART-MONA-220` (Mona Lisa must not merge into Flaco)..."
-        ),
+        text=f"Got *{f.get('name')}*. Checking if this matches an existing ticket…",
     )
 
     try:
@@ -83,34 +80,27 @@ def on_file_shared(event, client, logger):
 
         from classify import classify_video
 
-        logs: list[str] = []
-        result = classify_video(path, progress=logs.append)
+        result = classify_video(path, progress=lambda _m: None)
         decision = result.get("decision")
         ticket = result.get("ticket")
         reason = result.get("reason")
 
         if decision == "flaco":
             text = (
-                f"*Attached to `{ticket}`* (Flaco multi-angle)\n"
-                f"Reason: {reason}\n"
-                f"Indexed id: `{result.get('indexed_asset_id')}`\n"
-                f"_Provenance: Slack upload `{f.get('name')}`_"
+                f"*Matched an existing ticket:* `{ticket}` (Flaco multi-angle)\n"
+                f"_Source: Slack upload `{f.get('name')}`_"
             )
         elif decision == "mona":
             text = (
-                f"*Routed to `{ticket}`* — *rejected* for Flaco merge\n"
-                f"This looks like Mona Lisa / art campaign, not the owl.\n"
-                f"Reason: {reason}\n"
-                f"Notify Mona Lisa owner — do not attach to `TICKET-FLACO-01`."
+                f"*Matched a different ticket:* `{ticket}` — not the owl story.\n"
+                f"Left Flaco’s ticket unchanged.\n"
+                f"_Source: Slack upload `{f.get('name')}`_"
             )
         else:
             text = (
-                f"*Unclear classification* for `{f.get('name')}`\n"
-                f"Reason: {reason or 'n/a'}\n"
-                f"Manual desk review needed."
+                f"*No clear match* for `{f.get('name')}` — needs a human on the desk.\n"
+                f"({reason or 'n/a'})"
             )
-        if logs:
-            text += "\n```" + "\n".join(logs[-6:]) + "```"
         client.chat_postMessage(channel=channel, text=text)
     except Exception as e:
         logger.exception("classify failed")
@@ -121,8 +111,7 @@ def on_file_shared(event, client, logger):
 def newsroom_cmd(ack, respond, command):
     ack()
     respond(
-        "Upload a video to this channel. I will index it and attach to "
-        "`TICKET-FLACO-01` or `ART-MONA-220` (never merge Mona into Flaco)."
+        "Upload a video here. I’ll check whether it belongs on an existing desk ticket."
     )
 
 
