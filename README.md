@@ -50,6 +50,10 @@ python slack_bot.py
 
 Upload an MP4 in-channel → bot indexes with Twelve Labs → posts Flaco attach or Mona Lisa reject.
 
+Live HackNight workspace (`#all-hacknight`): Flaco clip attached to `TICKET-FLACO-01`.
+
+![Live Slack: Newsroom Desk routes Flaco upload](docs/live-slack-screenshot.png)
+
 ## Layout
 
 ```
