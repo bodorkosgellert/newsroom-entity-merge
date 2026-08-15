@@ -58,6 +58,10 @@ Same Flaco story, **other aspect / news source** (fire-escape episode) — still
 
 ![Live Slack: other aspect / new source merges to Flaco](docs/other-aspect-live.png)
 
+Mona Lisa distractor — routes to `ART-MONA-220`, **not** merged into Flaco:
+
+![Live Slack: Mona Lisa sighting rejected from Flaco ticket](docs/mona-lisa-sighting-live.png)
+
 ## Desk memory (Cognee + Qdrant)
 
 **Plain English:** Twelve Labs looks at the *video*. Desk memory (Cognee + Docker Qdrant + OpenAI) remembers *what the newsroom already said* — ticket names, nicknames (“eagle sighting” → Flaco), which Slack channels talked about it, and “don’t merge Mona into Flaco.”
