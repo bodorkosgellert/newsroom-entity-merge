@@ -194,8 +194,6 @@ def classify_video(video_path: Path, progress=print) -> dict:
         owl_f, owl_m = neighbor_vote(owl_hits[:12], flaco_ids, mona_ids)
         mona_f, mona_m = neighbor_vote(mona_hits[:12], flaco_ids, mona_ids)
         if owl_f > owl_m and mona_m >= mona_f:
-            # Owl query hits Flaco bank; mona query still prefers Mona — uploaded clip
-            # likely belongs with Flaco if it also appears deeper in owl hits only.
             if owl_rank is not None:
                 decision, ticket = "flaco", FLACO_TICKET
                 reason = f"vision+neighbors: owl_rank={owl_rank}, flaco_neighbors={owl_f}"
@@ -214,6 +212,61 @@ def classify_video(video_path: Path, progress=print) -> dict:
                     f"(owl_rank={owl_rank}, mona_rank={mona_rank})"
                 )
 
+    # Desk memory: aliases / channels / prior rejects (local JSON, or Cognee if enabled)
+    from desk_memory import (
+        format_memory_for_slack,
+        recall,
+        remember_attachment,
+        remember_reject,
+    )
+
+    memory_query = f"{video_path.name} {reason}"
+    memory_hits = recall(memory_query)
+    if decision == "unknown" and memory_hits and memory_hits[0].get("ticket"):
+        # Memory can break ties when vision is inconclusive
+        top = memory_hits[0]
+        if top["ticket"] == FLACO_TICKET:
+            decision, ticket = "flaco", FLACO_TICKET
+            reason = f"desk-memory: {top.get('summary')}"
+        elif top["ticket"] == MONA_TICKET:
+            decision, ticket = "mona", MONA_TICKET
+            reason = f"desk-memory: {top.get('summary')}"
+
+    if decision == "flaco" and ticket:
+        remember_attachment(
+            ticket,
+            source=video_path.name,
+            indexed_asset_id=new_id,
+            reason=reason,
+        )
+    elif decision == "mona" and ticket:
+        remember_attachment(
+            ticket,
+            source=video_path.name,
+            indexed_asset_id=new_id,
+            reason=reason,
+        )
+        remember_reject(
+            FLACO_TICKET,
+            MONA_TICKET,
+            source=video_path.name,
+            reason="Mona Lisa distractor — left Flaco unchanged",
+        )
+
+    # Also park a text note of the vision decision in the vector memory (Qdrant)
+    try:
+        from vector_memory import remember_vision_decision
+
+        remember_vision_decision(
+            filename=video_path.name,
+            ticket=ticket,
+            decision=decision,
+            reason=reason,
+            indexed_asset_id=new_id,
+        )
+    except Exception:
+        pass
+
     return {
         "decision": decision,
         "ticket": ticket,
@@ -225,6 +278,8 @@ def classify_video(video_path: Path, progress=print) -> dict:
         "mona_rank": mona_rank,
         "owl_hits": owl_hits[:3],
         "mona_hits": mona_hits[:3],
+        "desk_memory": memory_hits,
+        "desk_memory_slack": format_memory_for_slack(memory_hits),
     }
 
 

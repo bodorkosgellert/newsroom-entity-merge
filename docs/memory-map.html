@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Newsroom desk memory — embedding map</title>
+  <style>
+    :root {
+      --bg: #f6f1e8;
+      --ink: #1c1917;
+      --muted: #57534e;
+      --line: #d6d3d1;
+      --flaco: #0f766e;
+      --mona: #b45309;
+      --query: #1d4ed8;
+      --other: #78716c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.45;
+    }
+    header {
+      padding: 2rem 1.5rem 1rem;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-family: Georgia, "Times New Roman", serif;
+      font-weight: 600;
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      margin: 0 0 0.5rem;
+    }
+    .lede { color: var(--muted); max-width: 42rem; }
+    .grid {
+      display: grid;
+      gap: 1.25rem;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 1.5rem 3rem;
+    }
+    @media (min-width: 860px) {
+      .grid { grid-template-columns: 1.4fr 1fr; }
+    }
+    .panel {
+      border: 1px solid var(--line);
+      background: #fffdf8;
+      padding: 1rem 1.1rem 1.2rem;
+    }
+    .panel h2 {
+      font-size: 0.95rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0 0 0.75rem;
+      font-weight: 600;
+    }
+    svg { width: 100%; height: auto; display: block; background: #fff; border: 1px solid var(--line); }
+    .legend { display: flex; flex-wrap: wrap; gap: 0.75rem 1.1rem; margin-top: 0.75rem; font-size: 0.9rem; }
+    .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 0.35rem; }
+    ol { margin: 0; padding-left: 1.2rem; color: var(--muted); }
+    li { margin-bottom: 0.55rem; }
+    code { font-size: 0.85em; background: #f5f5f4; padding: 0.05em 0.3em; }
+    .compare {
+      display: grid;
+      gap: 0.75rem;
+    }
+    @media (min-width: 600px) {
+      .compare { grid-template-columns: 1fr 1fr; }
+    }
+    .card {
+      border: 1px dashed var(--line);
+      padding: 0.85rem;
+      background: #fff;
+    }
+    .card strong { display: block; margin-bottom: 0.35rem; }
+    footer {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 1.5rem 2.5rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>How desk memory sees “eagle sighting”</h1>
+    <p class="lede">
+      Twelve Labs judges the <em>video pixels</em>. This map is the sponsor layer:
+      Slack text, ticket aliases, and reject rules become number-lists (embeddings)
+      stored in Qdrant. Nearby dots mean similar meaning — so a vague upload title
+      can still land on <code>TICKET-FLACO-01</code>.
+    </p>
+  </header>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>Embedding map (2D sketch of nearness)</h2>
+      <svg id="map" viewBox="0 0 640 420" role="img" aria-label="Scatter plot of memory embeddings"></svg>
+      <div class="legend" id="legend"></div>
+      <p class="lede" style="margin-top:0.75rem;font-size:0.9rem" id="caption"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Who does what</h2>
+      <ol>
+        <li><strong>Cognee-shaped memory</strong> chooses what to keep: tickets, aliases like “eagle sighting”, channel chatter, “never merge Mona into Flaco”.</li>
+        <li><strong>Embedding model</strong> (free, on this PC) turns each memory card into a vector — a list of numbers.</li>
+        <li><strong>Qdrant</strong> stores those vectors and finds nearest neighbors when you search.</li>
+        <li><strong>Twelve Labs</strong> stays on video. After it decides, we save a short text note of that decision into the same memory.</li>
+      </ol>
+
+      <h2 style="margin-top:1.25rem">Why this helps the product</h2>
+      <div class="compare">
+        <div class="card">
+          <strong>Without memory</strong>
+          Vision alone can be slow or shallow; a filename like <code>eagle sighting.mp4</code> does not know Flaco is the desk ticket.
+        </div>
+        <div class="card">
+          <strong>With memory + vision</strong>
+          Qdrant already pulls Flaco aliases/channels; vision confirms the owl. Slack reply shows both layers — easier for judges to trust.
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    Model: <span id="model"></span> · Collection: <span id="coll"></span> ·
+    Generated for the Newsroom Entity Merge portfolio. Not a literal Cognee cloud deploy —
+    same roles: memory orchestration + vector search, running locally without Docker.
+  </footer>
+
+  <script>
+    const DATA = {"model": "sentence-transformers/all-MiniLM-L6-v2", "collection": "newsroom_desk", "distance": "cosine", "points": [{"id": 1, "kind": "ticket", "ticket": "TICKET-FLACO-01", "label": "Ticket TICKET-FLACO-01: Flaco multi-angle (NYC Eurasian eagle-owl). Also known a", "channel": "politics,video,print", "x": -0.41496982440017277, "y": 0.03175645679387065}, {"id": 2, "kind": "alias", "ticket": "TICKET-FLACO-01", "label": "Alias 'Flaco' refers to desk ticket TICKET-FLACO-01 (Flaco multi-angle (NYC Eura", "channel": "", "x": -0.3134793361628338, "y": 0.3875449884059057}, {"id": 3, "kind": "alias", "ticket": "TICKET-FLACO-01", "label": "Alias 'Central Park owl' refers to desk ticket TICKET-FLACO-01 (Flaco multi-angl", "channel": "", "x": -0.3203669532172527, "y": 0.3144507816906575}, {"id": 4, "kind": "alias", "ticket": "TICKET-FLACO-01", "label": "Alias 'NYC peeping owl' refers to desk ticket TICKET-FLACO-01 (Flaco multi-angle", "channel": "", "x": -0.30423077232564205, "y": 0.29954390518716517}, {"id": 5, "kind": "alias", "ticket": "TICKET-FLACO-01", "label": "Alias 'Eurasian eagle-owl' refers to desk ticket TICKET-FLACO-01 (Flaco multi-an", "channel": "", "x": -0.3567347070870541, "y": 0.3441859360631713}, {"id": 6, "kind": "alias", "ticket": "TICKET-FLACO-01", "label": "Alias 'eagle owl' refers to desk ticket TICKET-FLACO-01 (Flaco multi-angle (NYC ", "channel": "", "x": -0.3443732739750595, "y": 0.34931238015729077}, {"id": 7, "kind": "alias", "ticket": "TICKET-FLACO-01", "label": "Alias 'eagle sighting' refers to desk ticket TICKET-FLACO-01 (Flaco multi-angle ", "channel": "", "x": -0.32717952645797066, "y": 0.28563590154517293}, {"id": 8, "kind": "alias", "ticket": "TICKET-FLACO-01", "label": "Alias 'owl on windowsill' refers to desk ticket TICKET-FLACO-01 (Flaco multi-ang", "channel": "", "x": -0.2715341287872969, "y": 0.2991761578898415}, {"id": 9, "kind": "alias", "ticket": "TICKET-FLACO-01", "label": "Alias 'flaco' refers to desk ticket TICKET-FLACO-01 (Flaco multi-angle (NYC Eura", "channel": "", "x": -0.31347933616283385, "y": 0.38754498840590573}, {"id": 10, "kind": "alias", "ticket": "TICKET-FLACO-01", "label": "Alias 'FLACO' refers to desk ticket TICKET-FLACO-01 (Flaco multi-angle (NYC Eura", "channel": "", "x": -0.31347933616283385, "y": 0.38754498840590573}, {"id": 11, "kind": "reject", "ticket": "TICKET-FLACO-01", "label": "Reject rule for TICKET-FLACO-01: do not merge ART-MONA-220. Reason: Art desk Mon", "channel": "", "x": 0.37626162319738277, "y": 0.08422326073926213}, {"id": 12, "kind": "ticket", "ticket": "ART-MONA-220", "label": "Ticket ART-MONA-220: Mona Lisa / art desk. Also known as: Mona Lisa, Leonardo, D", "channel": "print,video", "x": 0.7004008472404633, "y": 0.1262362964868058}, {"id": 13, "kind": "alias", "ticket": "ART-MONA-220", "label": "Alias 'Mona Lisa' refers to desk ticket ART-MONA-220 (Mona Lisa / art desk).", "channel": "", "x": 0.690290862965987, "y": 0.336318802513514}, {"id": 14, "kind": "alias", "ticket": "ART-MONA-220", "label": "Alias 'Leonardo' refers to desk ticket ART-MONA-220 (Mona Lisa / art desk).", "channel": "", "x": 0.6795703845207193, "y": 0.33607052419455213}, {"id": 15, "kind": "alias", "ticket": "ART-MONA-220", "label": "Alias 'Da Vinci portrait' refers to desk ticket ART-MONA-220 (Mona Lisa / art de", "channel": "", "x": 0.732589553172196, "y": 0.3207108932327166}, {"id": 16, "kind": "chatter", "ticket": null, "label": "Slack #politics @jonas.politics: Flaco sighting thread \u2014 window peeping on UES a", "channel": "politics", "x": -0.3233243561786786, "y": -0.30342062279499815}, {"id": 17, "kind": "chatter", "ticket": null, "label": "Slack #politics @jonas.politics: Aliases floating around: \"the Central Park owl\"", "channel": "politics", "x": -0.1509762233449498, "y": -0.2615854349121769}, {"id": 18, "kind": "chatter", "ticket": null, "label": "Slack #politics @maya.desk: Desk note: trending positive animal story. Do NOT co", "channel": "politics", "x": 0.023153990988305086, "y": -0.4729847967317279}, {"id": 19, "kind": "chatter", "ticket": null, "label": "Slack #print @cmsbot: CMS: created slug flaco-owl-nyc-2023 \u00b7 ticket TICKET-FLACO", "channel": "print", "x": -0.10363511787893236, "y": -0.35665484417183974}, {"id": 20, "kind": "chatter", "ticket": null, "label": "Slack #print @sam.print: Print desk will run \"Flaco the window owl\" if video con", "channel": "print", "x": -0.1499678862948959, "y": -0.449136493891487}, {"id": 21, "kind": "chatter", "ticket": null, "label": "Slack #print @cmsbot: CMS: separate ticket ART-MONA-220 for Mona Lisa campaign a", "channel": "print", "x": 0.40800207358534696, "y": -0.1872175641479257}, {"id": 22, "kind": "chatter", "ticket": null, "label": "Slack #video @lea.video: New angle dropped: apartment windowsill, street-level l", "channel": "video", "x": -0.07519957260406673, "y": -0.5854429916861732}, {"id": 23, "kind": "chatter", "ticket": null, "label": "Slack #video @lea.video: Also someone uploaded a Mona Lisa effect clip into the ", "channel": "video", "x": 0.0823847372353259, "y": -0.2737463033227938}, {"id": 24, "kind": "chatter", "ticket": null, "label": "Slack #video @lea.video: Query for archive: \"eagle owl on apartment windowsill o", "channel": "video", "x": -0.2625972985186295, "y": -0.3251309057251597}, {"id": "q:eagle sighting on social media", "kind": "query", "ticket": null, "label": "eagle sighting on social media", "channel": "", "x": -0.1461642771005788, "y": -0.39461132465271104}, {"id": "q:Flaco owl windowsill", "kind": "query", "ticket": null, "label": "Flaco owl windowsill", "channel": "", "x": -0.25680308949268016, "y": -0.1425428028633475}, {"id": "q:Mona Lisa painting art desk", "kind": "query", "ticket": null, "label": "Mona Lisa painting art desk", "channel": "", "x": 0.8020943049841108, "y": -0.08675333311736766}, {"id": "q:random cooking recipe", "kind": "query", "ticket": null, "label": "random cooking recipe", "channel": "", "x": 0.25374663826252564, "y": -0.45102884369402974}], "caption": "Each dot is a memory card or a search query. Close dots \u2248 similar meaning. Queries near Flaco dots mean the desk would reinforce that ticket."};
+
+    const colorFor = (p) => {
+      if (p.kind === "query") return "var(--query)";
+      if (p.ticket === "TICKET-FLACO-01") return "var(--flaco)";
+      if (p.ticket === "ART-MONA-220") return "var(--mona)";
+      return "var(--other)";
+    };
+
+    const xs = DATA.points.map(p => p.x);
+    const ys = DATA.points.map(p => p.y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const pad = 36;
+    const W = 640, H = 420;
+    const sx = (x) => pad + (W - 2*pad) * ((x - minX) / (maxX - minX || 1));
+    const sy = (y) => H - pad - (H - 2*pad) * ((y - minY) / (maxY - minY || 1));
+
+    const svg = document.getElementById("map");
+    DATA.points.forEach((p) => {
+      const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      c.setAttribute("cx", sx(p.x));
+      c.setAttribute("cy", sy(p.y));
+      c.setAttribute("r", p.kind === "query" ? 7 : 5);
+      c.setAttribute("fill", colorFor(p));
+      c.setAttribute("opacity", p.kind === "query" ? "1" : "0.85");
+      c.setAttribute("stroke", p.kind === "query" ? "#1e3a8a" : "none");
+      c.setAttribute("stroke-width", "1.5");
+      const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+      title.textContent = `[${p.kind}] ${p.label}`;
+      c.appendChild(title);
+      svg.appendChild(c);
+      if (p.kind === "query") {
+        const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        t.setAttribute("x", sx(p.x) + 9);
+        t.setAttribute("y", sy(p.y) + 4);
+        t.setAttribute("font-size", "11");
+        t.setAttribute("fill", "#1e3a8a");
+        t.textContent = p.label.length > 28 ? p.label.slice(0, 28) + "…" : p.label;
+        svg.appendChild(t);
+      }
+    });
+
+    document.getElementById("legend").innerHTML = `
+      <span><i class="swatch" style="background:var(--flaco)"></i>Flaco ticket memories</span>
+      <span><i class="swatch" style="background:var(--mona)"></i>Mona / art desk</span>
+      <span><i class="swatch" style="background:var(--other)"></i>Slack chatter / other</span>
+      <span><i class="swatch" style="background:var(--query)"></i>Search queries</span>
+    `;
+    document.getElementById("caption").textContent = DATA.caption || "";
+    document.getElementById("model").textContent = DATA.model || "";
+    document.getElementById("coll").textContent = DATA.collection || "";
+  </script>
+</body>
+</html>

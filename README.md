@@ -54,6 +54,32 @@ Live HackNight workspace (`#all-hacknight`): upload named `eagle sighting.mp4` r
 
 ![Live Slack: vision match to TICKET-FLACO-01 despite “eagle” filename](docs/eagle-sighting-live.png)
 
+## Desk memory (Cognee-shaped + Qdrant)
+
+**Plain English:** Twelve Labs looks at the *video*. Desk memory remembers *what the newsroom already said* — ticket names, nicknames (“eagle sighting” → Flaco), which Slack channels talked about it, and “don’t merge Mona into Flaco.”
+
+| Role | Who does it here |
+| --- | --- |
+| Choose what to remember | `desk_memory.py` (Cognee’s job in the sponsor stack) |
+| Turn text → number lists (embeddings) | free local model `all-MiniLM-L6-v2` (no API credit) |
+| Store & search those number lists | **Qdrant on disk** via `qdrant-client` (`out/qdrant_local/`) — same idea as Docker Qdrant, no Docker install required on this machine |
+| Video pixels / audio | **Twelve Labs** (separate). After it decides, we save a short *text note* of that decision into Qdrant too |
+
+```bash
+pip install -r requirements.txt
+python vector_memory.py              # sync tickets + Slack chatter → Qdrant
+python vector_memory.py search "eagle sighting"
+python build_memory_map.py           # writes docs/memory-map.html
+```
+
+Open the map: [docs/memory-map.html](docs/memory-map.html) — dots that sit near each other mean “similar meaning.”
+
+**Docker / full Cognee later:** this PC didn’t have Docker, and `.env` has no `LLM_API_KEY`, so we didn’t burn paid LLM credits. When you install Docker Desktop + add an LLM key, you can point real `cognee` at Qdrant; the demo story stays the same.
+
+**Images:** video → Twelve Labs. Still photos / screenshots with text → better as “describe or OCR → save text into desk memory.” You don’t have to push raw pixels into Qdrant for this pitch.
+
+**How to show memory value in Slack:** keep the bot running, re-upload a clip. The reply should show **Desk memory** (aliases + channels + reject rule) *and* the Twelve Labs vision reason — two layers, one decision.
+
 ## Layout
 
 ```
@@ -62,6 +88,9 @@ data/clips/             # local videos only (gitignored)
 demo.py                 # end-to-end simulated demo
 view_slack.py           # HTML Slack UI + previews
 classify.py             # upload → Twelve Labs → ticket
+desk_memory.py          # what the desk knows (+ optional Cognee)
+vector_memory.py        # embeddings + local Qdrant search
+build_memory_map.py     # portfolio map → docs/memory-map.html
 slack_bot.py            # live Slack file_shared handler
 SLACK_SETUP.md
 ```
@@ -70,4 +99,4 @@ SLACK_SETUP.md
 
 1. Same story, many names/angles across channels.  
 2. Twelve Labs finds owl moments; Mona Lisa does not join that ticket.  
-3. Auto write-back with provenance — keyword search cannot do this join.
+3. Desk memory (Qdrant) reinforces aliases/channels; keyword search cannot do this join.

@@ -102,24 +102,28 @@ def on_file_shared(event, client, logger):
         decision = result.get("decision")
         ticket = result.get("ticket")
         reason = result.get("reason")
+        memory_block = result.get("desk_memory_slack") or ""
 
         if decision == "flaco":
             text = (
                 f"*Matched an existing ticket:* `{ticket}` (Flaco multi-angle)\n"
                 f"_Reason: {reason or 'n/a'}_\n"
-                f"_Source: Slack upload `{f.get('name')}`_"
+                f"_Source: Slack upload `{f.get('name')}`_\n"
+                f"{memory_block}"
             )
         elif decision == "mona":
             text = (
                 f"*Matched a different ticket:* `{ticket}` — not the owl story.\n"
                 f"Left Flaco’s ticket unchanged.\n"
                 f"_Reason: {reason or 'n/a'}_\n"
-                f"_Source: Slack upload `{f.get('name')}`_"
+                f"_Source: Slack upload `{f.get('name')}`_\n"
+                f"{memory_block}"
             )
         else:
             text = (
                 f"*No clear match* for `{f.get('name')}` — needs a human on the desk.\n"
-                f"({reason or 'n/a'})"
+                f"({reason or 'n/a'})\n"
+                f"{memory_block}"
             )
         client.chat_postMessage(channel=channel, text=text)
     except Exception as e:

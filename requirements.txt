@@ -2,6 +2,10 @@ python-dotenv>=1.0.0
 twelvelabs>=1.0.0
 slack-bolt>=1.20.0
 requests>=2.31.0
-# Optional:
+# Local Cognee-shaped memory + Qdrant (no Docker; $0 embedding API):
+qdrant-client>=1.9.0
+sentence-transformers>=3.0.0
+scikit-learn>=1.3.0
+# Optional full Cognee (needs LLM_API_KEY + usually Docker Qdrant):
 # cognee
 # cognee-community-vector-adapter-qdrant
