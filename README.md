@@ -52,11 +52,7 @@ Upload an MP4 in-channel → bot indexes with Twelve Labs → posts Flaco attach
 
 Live HackNight workspace (`#all-hacknight`): upload named `eagle sighting.mp4` routed to `TICKET-FLACO-01` by **vision** (`ranks #20 for owl query`, Mona rank none) — not by the filename. The frame is clearly an owl (facial disk, mottled plumage), not an eagle; keyword search on “eagle” would miss the Flaco desk ticket.
 
-![Live Slack: vision match to TICKET-FLACO-01 despite “eagle” filename](docs/live-slack-vision-match.png)
-
-Earlier live attach (filename-heuristic path, for comparison):
-
-![Live Slack: Newsroom Desk routes Flaco upload](docs/live-slack-screenshot.png)
+![Live Slack: vision match to TICKET-FLACO-01 despite “eagle” filename](docs/eagle-sighting-live.png)
 
 ## Layout
 
