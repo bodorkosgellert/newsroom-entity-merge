@@ -266,46 +266,132 @@ def _recall_local(query: str, limit: int = 3) -> list[dict]:
     return ranked[:limit]
 
 
+def _cognee_extract_text(row) -> str:
+    if isinstance(row, str):
+        return row
+    if isinstance(row, dict):
+        return str(row.get("text") or row.get("summary") or row)
+    return str(getattr(row, "text", None) or row)
+
+
 def _recall_cognee(query: str, limit: int = 3) -> list[dict]:
-    """Optional path: real Cognee search (embeddings → Qdrant/LanceDB)."""
+    """Real Cognee search (OpenAI + Docker Qdrant)."""
     import asyncio
 
+    os.environ.setdefault("ENABLE_BACKEND_ACCESS_CONTROL", "false")
+    # Prefer Docker Qdrant URL if unset
+    if not (os.getenv("VECTOR_DB_URL") or "").strip():
+        os.environ["VECTOR_DB_URL"] = "http://localhost:6333"
+    os.environ.setdefault("VECTOR_DB_PROVIDER", "qdrant")
+    os.environ.setdefault("VECTOR_DATASET_DATABASE_HANDLER", "qdrant")
+    openai = (os.getenv("OPENAI_API_KEY") or "").strip()
+    if openai and not (os.getenv("LLM_API_KEY") or "").strip():
+        os.environ["LLM_API_KEY"] = openai
+
     async def _run() -> list[dict]:
-        # Community Qdrant adapter must register before any cognee call
-        if os.getenv("VECTOR_DB_PROVIDER", "").lower() == "qdrant":
-            from cognee_community_vector_adapter_qdrant import register
-
-            register()
-
+        import cognee_community_vector_adapter_qdrant.register  # noqa: F401
         import cognee
+        from cognee import config
         from cognee.api.v1.search import SearchType
+
+        system_path = ROOT / ".cognee_system"
+        data_path = ROOT / ".cognee_data"
+        system_path.mkdir(exist_ok=True)
+        data_path.mkdir(exist_ok=True)
+        config.system_root_directory(str(system_path))
+        config.data_root_directory(str(data_path))
+        config.set_vector_db_config(
+            {
+                "vector_db_provider": "qdrant",
+                "vector_dataset_database_handler": "qdrant",
+                "vector_db_url": os.getenv("VECTOR_DB_URL", "http://localhost:6333"),
+                "vector_db_key": os.getenv("VECTOR_DB_KEY", "") or None,
+            }
+        )
 
         results = await cognee.search(
             query_text=query,
             query_type=SearchType.CHUNKS,
         )
-        out = []
-        for i, r in enumerate(results[:limit]):
-            text = r if isinstance(r, str) else str(r)
-            ticket = FLACO_TICKET if re.search(r"flaco|owl|TICKET-FLACO", text, re.I) else None
-            if re.search(r"mona|ART-MONA", text, re.I):
-                ticket = MONA_TICKET
-            out.append(
-                {
-                    "ticket": ticket,
-                    "title": None,
-                    "score": limit - i,
-                    "aliases": [],
-                    "channels": [],
-                    "rejects": [],
-                    "backend": "cognee",
-                    "summary": text[:400],
-                }
-            )
-        return out or _recall_local(query, limit=limit)
+        mem = load_memory()
+        out: list[dict] = []
+        for i, r in enumerate(results[: max(limit, 5)]):
+            text = _cognee_extract_text(r)
+            ticket = None
+            if re.search(r"TICKET-FLACO|flaco|eagle.?owl|eagle sighting|central park owl", text, re.I):
+                ticket = FLACO_TICKET
+            if re.search(r"ART-MONA|mona\s*lisa", text, re.I):
+                # Prefer Mona if clearly about Mona; don't override Flaco if both mentioned weakly
+                if re.search(r"mona", text, re.I) and not re.search(r"never merge.*mona|mona.*into flaco", text, re.I):
+                    ticket = MONA_TICKET
+                elif ticket is None:
+                    ticket = MONA_TICKET
+            row = {
+                "ticket": ticket,
+                "title": None,
+                "score": 100 - i * 10,
+                "aliases": [],
+                "channels": [],
+                "rejects": [],
+                "backend": "cognee",
+                "summary": text[:400],
+            }
+            if ticket and ticket in mem.get("tickets", {}):
+                t = mem["tickets"][ticket]
+                row["title"] = t.get("title")
+                row["aliases"] = (t.get("aliases") or [])[:8]
+                row["channels"] = [f"#{c}" for c in t.get("channels") or []]
+                row["rejects"] = t.get("rejects") or []
+            if ticket:
+                out.append(row)
+        # Dedupe by ticket, keep best
+        by_ticket: dict[str, dict] = {}
+        for row in out:
+            tid = row["ticket"]
+            if tid not in by_ticket or row["score"] > by_ticket[tid]["score"]:
+                by_ticket[tid] = row
+        ranked = sorted(by_ticket.values(), key=lambda x: x["score"], reverse=True)
+        return ranked[:limit] or _recall_local(query, limit=limit)
 
     return asyncio.run(_run())
 
+
+async def remember_to_cognee(text: str) -> None:
+    """Light write into Cognee. add() only on hot path (no cognify) to save time/credit."""
+    if os.getenv("COGNEE_ENABLED", "").strip() not in {"1", "true", "True"}:
+        return
+    if os.getenv("COGNEE_WRITE", "1").strip() in {"0", "false", "False"}:
+        return
+    os.environ.setdefault("ENABLE_BACKEND_ACCESS_CONTROL", "false")
+    import cognee_community_vector_adapter_qdrant.register  # noqa: F401
+    import cognee
+    from cognee import config
+
+    system_path = ROOT / ".cognee_system"
+    data_path = ROOT / ".cognee_data"
+    config.system_root_directory(str(system_path))
+    config.data_root_directory(str(data_path))
+    config.set_vector_db_config(
+        {
+            "vector_db_provider": "qdrant",
+            "vector_dataset_database_handler": "qdrant",
+            "vector_db_url": os.getenv("VECTOR_DB_URL", "http://localhost:6333"),
+            "vector_db_key": os.getenv("VECTOR_DB_KEY", "") or None,
+        }
+    )
+    await cognee.add(text)
+    # Full cognify is expensive; only when COGNEE_COGNIFY=1
+    if os.getenv("COGNEE_COGNIFY", "0").strip() in {"1", "true", "True"}:
+        await cognee.cognify()
+
+
+def remember_to_cognee_sync(text: str) -> None:
+    import asyncio
+
+    try:
+        asyncio.run(remember_to_cognee(text))
+    except Exception:
+        pass
 
 def infer_news_source(filename: str) -> dict:
     """
@@ -398,15 +484,20 @@ def format_memory_for_slack(hits: list[dict]) -> str:
     if not hits:
         return "_Desk memory: nothing prior on this story._"
     top = hits[0]
+    backend = top.get("backend", "local")
     lines = [
-        f"*Desk memory* (`{top.get('backend', 'local')}`): `{top.get('ticket')}` — {top.get('title') or 'match'}",
+        f"*Desk memory* (`{backend}`): `{top.get('ticket')}` — {top.get('title') or 'match'}",
         f"_Aliases: {', '.join(top.get('aliases') or []) or 'n/a'}_",
         f"_Channels: {', '.join(top.get('channels') or []) or 'n/a'}_",
     ]
+    if top.get("summary") and backend == "cognee":
+        lines.append(f"_Cognee recall: {top.get('summary')[:220]}_")
     rejects = top.get("rejects") or []
     if rejects:
         r0 = rejects[0]
         lines.append(f"_Prior reject rule: do not merge `{r0.get('ticket')}` — {r0.get('reason')}_")
+    if top.get("cognee_error"):
+        lines.append(f"_Cognee fallback used: {top.get('cognee_error')[:120]}_")
     return "\n".join(lines)
 
 

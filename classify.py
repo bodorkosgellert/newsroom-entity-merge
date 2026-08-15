@@ -271,6 +271,20 @@ def classify_video(video_path: Path, progress=print) -> dict:
     except Exception:
         pass
 
+    # Optional: grow Cognee memory with this routing decision (small OpenAI cost)
+    if os.getenv("COGNEE_ENABLED", "").strip() in {"1", "true", "True"}:
+        try:
+            from desk_memory import remember_to_cognee_sync
+
+            sm = source_meta or {}
+            remember_to_cognee_sync(
+                f"Vision routing for '{video_path.name}': decision={decision}, "
+                f"ticket={ticket}, reason={reason}. "
+                f"Source intake {sm.get('source_id')}: {sm.get('outlet')} — {sm.get('episode')}."
+            )
+        except Exception:
+            pass
+
     return {
         "decision": decision,
         "ticket": ticket,

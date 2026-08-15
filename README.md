@@ -54,29 +54,35 @@ Live HackNight workspace (`#all-hacknight`): upload named `eagle sighting.mp4` r
 
 ![Live Slack: vision match to TICKET-FLACO-01 despite “eagle” filename](docs/eagle-sighting-live.png)
 
-## Desk memory (Cognee-shaped + Qdrant)
+Same Flaco story, **other aspect / news source** (fire-escape episode) — still merges into `TICKET-FLACO-01` with source intake + desk memory (Cognee path):
 
-**Plain English:** Twelve Labs looks at the *video*. Desk memory remembers *what the newsroom already said* — ticket names, nicknames (“eagle sighting” → Flaco), which Slack channels talked about it, and “don’t merge Mona into Flaco.”
+![Live Slack: other aspect / new source merges to Flaco](docs/other-aspect-live.png)
 
-| Role | Who does it here |
+## Desk memory (Cognee + Qdrant)
+
+**Plain English:** Twelve Labs looks at the *video*. Desk memory (Cognee + Docker Qdrant + OpenAI) remembers *what the newsroom already said* — ticket names, nicknames (“eagle sighting” → Flaco), which Slack channels talked about it, and “don’t merge Mona into Flaco.”
+
+| Role | Who does it |
 | --- | --- |
-| Choose what to remember | `desk_memory.py` (Cognee’s job in the sponsor stack) |
-| Turn text → number lists (embeddings) | free local model `all-MiniLM-L6-v2` (no API credit) |
-| Store & search those number lists | **Qdrant on disk** via `qdrant-client` (`out/qdrant_local/`) — same idea as Docker Qdrant, no Docker install required on this machine |
-| Video pixels / audio | **Twelve Labs** (separate). After it decides, we save a short *text note* of that decision into Qdrant too |
+| Choose what to remember / recall | **Cognee** (`desk_memory.py`, `COGNEE_ENABLED=1`) |
+| Store & search vectors | **Qdrant** in Docker (`newsroom-qdrant`, `localhost:6333`) |
+| Embeddings / cognify | **OpenAI** (via Cognee) |
+| Video pixels / audio | **Twelve Labs** |
 
 ```bash
-pip install -r requirements.txt
-python vector_memory.py              # sync tickets + Slack chatter → Qdrant
-python vector_memory.py search "eagle sighting"
-python build_memory_map.py           # writes docs/memory-map.html
+# Qdrant
+docker start newsroom-qdrant
+
+# Cognee Slack bot (Python 3.12 venv)
+.\.venv-cognee\Scripts\python.exe slack_bot.py
+
+# Optional smoke test
+.\.venv-cognee\Scripts\python.exe cognee_smoke_test.py
 ```
 
-Open the map: [docs/memory-map.html](docs/memory-map.html) — dots that sit near each other mean “similar meaning.”
+Portfolio embedding map (local MiniLM sketch): [docs/memory-map.html](docs/memory-map.html)
 
-**Docker / full Cognee later:** this PC didn’t have Docker, and `.env` has no `LLM_API_KEY`, so we didn’t burn paid LLM credits. When you install Docker Desktop + add an LLM key, you can point real `cognee` at Qdrant; the demo story stays the same.
-
-**Images:** video → Twelve Labs. Still photos / screenshots with text → better as “describe or OCR → save text into desk memory.” You don’t have to push raw pixels into Qdrant for this pitch.
+**Images:** video → Twelve Labs. Still photos / screenshots with text → describe or OCR → desk memory.
 
 **How to show memory value in Slack:** keep the bot running, re-upload a clip. The reply should show **Desk memory** (aliases + channels + reject rule) *and* the Twelve Labs vision reason — two layers, one decision.
 
