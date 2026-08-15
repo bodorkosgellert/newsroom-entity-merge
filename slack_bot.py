@@ -30,6 +30,7 @@ if not BOT:
 
 app = App(token=BOT)
 INBOX.mkdir(parents=True, exist_ok=True)
+_SEEN_FILES: set[str] = set()
 
 
 def download_slack_file(file_obj: dict) -> Path | None:
@@ -56,6 +57,12 @@ def on_file_shared(event, client, logger):
     file_id = event.get("file_id")
     if not file_id:
         return
+    # Slack often delivers file_shared more than once; only process once per file.
+    if file_id in _SEEN_FILES:
+        logger.info("skip duplicate file_shared for %s", file_id)
+        return
+    _SEEN_FILES.add(file_id)
+
     info = client.files_info(file=file_id)
     f = info.get("file") or {}
     if not is_video(f):
@@ -69,7 +76,10 @@ def on_file_shared(event, client, logger):
 
     client.chat_postMessage(
         channel=channel,
-        text=f"Got *{f.get('name')}*. Checking if this matches an existing ticket…",
+        text=(
+            f"Got *{f.get('name')}*. Indexing with Twelve Labs "
+            f"(usually 30–90s) then routing to a desk ticket…"
+        ),
     )
 
     try:
@@ -80,7 +90,15 @@ def on_file_shared(event, client, logger):
 
         from classify import classify_video
 
-        result = classify_video(path, progress=lambda _m: None)
+        def progress(msg: str) -> None:
+            logger.info("classify: %s", msg)
+            if any(k in msg.lower() for k in ("uploading", "indexing", "indexed as")):
+                try:
+                    client.chat_postMessage(channel=channel, text=f"_{msg}_")
+                except Exception:
+                    logger.exception("progress post failed")
+
+        result = classify_video(path, progress=progress)
         decision = result.get("decision")
         ticket = result.get("ticket")
         reason = result.get("reason")
@@ -88,12 +106,14 @@ def on_file_shared(event, client, logger):
         if decision == "flaco":
             text = (
                 f"*Matched an existing ticket:* `{ticket}` (Flaco multi-angle)\n"
+                f"_Reason: {reason or 'n/a'}_\n"
                 f"_Source: Slack upload `{f.get('name')}`_"
             )
         elif decision == "mona":
             text = (
                 f"*Matched a different ticket:* `{ticket}` — not the owl story.\n"
                 f"Left Flaco’s ticket unchanged.\n"
+                f"_Reason: {reason or 'n/a'}_\n"
                 f"_Source: Slack upload `{f.get('name')}`_"
             )
         else:
@@ -105,6 +125,7 @@ def on_file_shared(event, client, logger):
     except Exception as e:
         logger.exception("classify failed")
         client.chat_postMessage(channel=channel, text=f"Classification failed: `{e}`")
+        _SEEN_FILES.discard(file_id)
 
 
 @app.command("/newsroom")

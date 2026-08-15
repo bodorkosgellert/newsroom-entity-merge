@@ -83,7 +83,8 @@ def wait_indexed_ready(client, index_id: str, indexed_id: str, timeout_s: int = 
         time.sleep(6)
 
 
-def search(client, index_id: str, query: str, limit: int = 8) -> list[dict]:
+def search(client, index_id: str, query: str, limit: int = 60) -> list[dict]:
+    """Paginate search hits. New clips often sit past the top-8 when the index already has strong matches."""
     results = client.search.query(
         index_id=index_id,
         query_text=query,
@@ -109,6 +110,21 @@ def best_rank_for(video_id: str, hits: list[dict]) -> int | None:
         if h.get("video_id") == video_id:
             return i
     return None
+
+
+def neighbor_vote(hits: list[dict], flaco_ids: set[str], mona_ids: set[str]) -> tuple[int, int]:
+    """Count unique known ticket videos among search hits (fallback if new id is still missing)."""
+    seen_f: set[str] = set()
+    seen_m: set[str] = set()
+    for h in hits:
+        vid = h.get("video_id")
+        if not vid:
+            continue
+        if vid in flaco_ids:
+            seen_f.add(vid)
+        if vid in mona_ids:
+            seen_m.add(vid)
+    return len(seen_f), len(seen_m)
 
 
 def classify_video(video_path: Path, progress=print) -> dict:
@@ -142,12 +158,24 @@ def classify_video(video_path: Path, progress=print) -> dict:
     new_id = indexed.id
     progress(f"indexed as {new_id}")
 
-    owl_hits = search(client, index_id, "Eurasian eagle owl on apartment windowsill orange eyes Flaco")
-    mona_hits = search(client, index_id, "Mona Lisa painting Leonardo da Vinci portrait face")
+    # Brief settle so the new asset is searchable (usually immediate once ready).
+    time.sleep(3)
+
+    owl_hits = search(
+        client,
+        index_id,
+        "Eurasian eagle owl on apartment windowsill orange eyes Flaco",
+        limit=60,
+    )
+    mona_hits = search(
+        client,
+        index_id,
+        "Mona Lisa painting Leonardo da Vinci portrait face",
+        limit=60,
+    )
     owl_rank = best_rank_for(new_id, owl_hits)
     mona_rank = best_rank_for(new_id, mona_hits)
 
-    # Also: if new video isn't in top results, fall back to whether owl hits dominate known flaco ids
     flaco_ids, mona_ids = known_ids(state)
     decision = "unknown"
     ticket = None
@@ -156,20 +184,35 @@ def classify_video(video_path: Path, progress=print) -> dict:
     if owl_rank is not None and (mona_rank is None or owl_rank < mona_rank):
         decision = "flaco"
         ticket = FLACO_TICKET
-        reason = f"new clip ranks #{owl_rank} for owl query (mona rank={mona_rank})"
+        reason = f"vision: new clip ranks #{owl_rank} for owl query (mona rank={mona_rank})"
     elif mona_rank is not None and (owl_rank is None or mona_rank < owl_rank):
         decision = "mona"
         ticket = MONA_TICKET
-        reason = f"new clip ranks #{mona_rank} for Mona Lisa query (owl rank={owl_rank})"
+        reason = f"vision: new clip ranks #{mona_rank} for Mona Lisa query (owl rank={owl_rank})"
     else:
-        # filename / poster heuristic fallback
-        name = video_path.name.lower()
-        if "mona" in name or "lisa" in name:
-            decision, ticket, reason = "mona", MONA_TICKET, "filename heuristic"
-        elif "flaco" in name or "owl" in name:
-            decision, ticket, reason = "flaco", FLACO_TICKET, "filename heuristic"
-        else:
-            reason = "no clear ranking for new video id in either query"
+        # Neighbor vote: which known ticket's clips dominate each query's hit list.
+        owl_f, owl_m = neighbor_vote(owl_hits[:12], flaco_ids, mona_ids)
+        mona_f, mona_m = neighbor_vote(mona_hits[:12], flaco_ids, mona_ids)
+        if owl_f > owl_m and mona_m >= mona_f:
+            # Owl query hits Flaco bank; mona query still prefers Mona — uploaded clip
+            # likely belongs with Flaco if it also appears deeper in owl hits only.
+            if owl_rank is not None:
+                decision, ticket = "flaco", FLACO_TICKET
+                reason = f"vision+neighbors: owl_rank={owl_rank}, flaco_neighbors={owl_f}"
+            elif mona_rank is not None:
+                decision, ticket = "mona", MONA_TICKET
+                reason = f"vision+neighbors: mona_rank={mona_rank}, mona_neighbors={mona_m}"
+        if decision == "unknown":
+            name = video_path.name.lower()
+            if "mona" in name or "lisa" in name:
+                decision, ticket, reason = "mona", MONA_TICKET, "filename heuristic"
+            elif any(k in name for k in ("flaco", "owl", "eagle")):
+                decision, ticket, reason = "flaco", FLACO_TICKET, "filename heuristic"
+            else:
+                reason = (
+                    f"no clear ranking for new video id "
+                    f"(owl_rank={owl_rank}, mona_rank={mona_rank})"
+                )
 
     return {
         "decision": decision,
