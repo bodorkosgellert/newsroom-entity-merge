@@ -307,24 +307,76 @@ def _recall_cognee(query: str, limit: int = 3) -> list[dict]:
     return asyncio.run(_run())
 
 
+def infer_news_source(filename: str) -> dict:
+    """
+    Same Flaco story, different outlet/episode → one parent ticket + a source intake id.
+    (Entity merge stays on TICKET-FLACO-01; we still mint a source slip for provenance.)
+    """
+    name = filename.lower()
+    if any(k in name for k in ("fire_escape", "fire-escape", "independent", "uws")):
+        return {
+            "source_id": "SOURCE-INDEPENDENT-FIRE-ESCAPE",
+            "outlet": "The Independent / Manhattan bird alert (fire escape)",
+            "episode": "UWS fire-escape sighting — same Flaco story, new angle/outlet",
+        }
+    if any(k in name for k in ("windowsill", "inside edition", "peeping", "g-iz4d54szw")):
+        return {
+            "source_id": "SOURCE-INSIDE-EDITION-WINDOWSILL",
+            "outlet": "Inside Edition-style windowsill peeping",
+            "episode": "Windowsill angle — same Flaco story",
+        }
+    if "eagle sighting" in name or "glgfq" in name or "glgfq" in name.replace("_", ""):
+        return {
+            "source_id": "SOURCE-SLACK-EAGLE-SIGHTING",
+            "outlet": "Slack / social upload",
+            "episode": "Mislabelled ‘eagle’ social clip — same Flaco story",
+        }
+    if "mona" in name or "lisa" in name:
+        return {
+            "source_id": "SOURCE-MONA-DISTRACTOR",
+            "outlet": "Art / distractor intake",
+            "episode": "Not Flaco",
+        }
+    if "snowy" in name or "not_flaco" in name:
+        return {
+            "source_id": "SOURCE-SNOWY-OWL-OTHER",
+            "outlet": "Other owl species (snowy)",
+            "episode": "Different bird — must not merge into Flaco",
+        }
+    return {
+        "source_id": "SOURCE-UNKNOWN-INTAKE",
+        "outlet": "Unlabelled upload",
+        "episode": "New intake — classify against existing tickets",
+    }
+
+
 def remember_attachment(
     ticket_id: str,
     *,
     source: str,
     indexed_asset_id: str | None = None,
     reason: str | None = None,
-) -> None:
+    source_meta: dict | None = None,
+) -> dict:
     mem = load_memory()
-    ticket = mem["tickets"].setdefault(ticket_id, {"aliases": [], "channels": [], "attachments": [], "rejects": [], "notes": []})
-    ticket.setdefault("attachments", []).append(
-        {
-            "source": source,
-            "indexed_asset_id": indexed_asset_id,
-            "reason": reason,
-            "at": _now(),
-        }
+    ticket = mem["tickets"].setdefault(
+        ticket_id,
+        {"aliases": [], "channels": [], "attachments": [], "rejects": [], "notes": [], "sources": []},
     )
+    meta = source_meta or infer_news_source(source)
+    entry = {
+        "source": source,
+        "indexed_asset_id": indexed_asset_id,
+        "reason": reason,
+        "at": _now(),
+        **meta,
+    }
+    ticket.setdefault("attachments", []).append(entry)
+    sources = ticket.setdefault("sources", [])
+    if meta.get("source_id") and meta["source_id"] not in {s.get("source_id") for s in sources}:
+        sources.append(meta)
     save_memory(mem)
+    return meta
 
 
 def remember_reject(

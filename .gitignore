@@ -17,3 +17,8 @@ data/clips/distractors/*.mp4
 *.mov
 *.mkv
 *.webm
+
+.venv-cognee/
+.cognee_system/
+.cognee_data/
+

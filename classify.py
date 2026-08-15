@@ -233,14 +233,14 @@ def classify_video(video_path: Path, progress=print) -> dict:
             reason = f"desk-memory: {top.get('summary')}"
 
     if decision == "flaco" and ticket:
-        remember_attachment(
+        source_meta = remember_attachment(
             ticket,
             source=video_path.name,
             indexed_asset_id=new_id,
             reason=reason,
         )
     elif decision == "mona" and ticket:
-        remember_attachment(
+        source_meta = remember_attachment(
             ticket,
             source=video_path.name,
             indexed_asset_id=new_id,
@@ -252,6 +252,10 @@ def classify_video(video_path: Path, progress=print) -> dict:
             source=video_path.name,
             reason="Mona Lisa distractor — left Flaco unchanged",
         )
+    else:
+        from desk_memory import infer_news_source
+
+        source_meta = infer_news_source(video_path.name)
 
     # Also park a text note of the vision decision in the vector memory (Qdrant)
     try:
@@ -280,6 +284,7 @@ def classify_video(video_path: Path, progress=print) -> dict:
         "mona_hits": mona_hits[:3],
         "desk_memory": memory_hits,
         "desk_memory_slack": format_memory_for_slack(memory_hits),
+        "source_meta": source_meta,
     }
 
 

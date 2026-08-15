@@ -103,25 +103,36 @@ def on_file_shared(event, client, logger):
         ticket = result.get("ticket")
         reason = result.get("reason")
         memory_block = result.get("desk_memory_slack") or ""
+        source_meta = result.get("source_meta") or {}
+        source_line = ""
+        if source_meta.get("source_id"):
+            source_line = (
+                f"*Source intake:* `{source_meta.get('source_id')}` — "
+                f"{source_meta.get('outlet')}\n"
+                f"_{source_meta.get('episode')}_\n"
+            )
 
         if decision == "flaco":
             text = (
-                f"*Matched an existing ticket:* `{ticket}` (Flaco multi-angle)\n"
+                f"*Same story, new source — merged into existing ticket:* `{ticket}`\n"
+                f"{source_line}"
                 f"_Reason: {reason or 'n/a'}_\n"
-                f"_Source: Slack upload `{f.get('name')}`_\n"
+                f"_Slack file: `{f.get('name')}`_\n"
                 f"{memory_block}"
             )
         elif decision == "mona":
             text = (
                 f"*Matched a different ticket:* `{ticket}` — not the owl story.\n"
                 f"Left Flaco’s ticket unchanged.\n"
+                f"{source_line}"
                 f"_Reason: {reason or 'n/a'}_\n"
-                f"_Source: Slack upload `{f.get('name')}`_\n"
+                f"_Slack file: `{f.get('name')}`_\n"
                 f"{memory_block}"
             )
         else:
             text = (
                 f"*No clear match* for `{f.get('name')}` — needs a human on the desk.\n"
+                f"{source_line}"
                 f"({reason or 'n/a'})\n"
                 f"{memory_block}"
             )
